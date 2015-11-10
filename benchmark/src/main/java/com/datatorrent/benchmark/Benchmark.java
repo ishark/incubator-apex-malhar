@@ -21,10 +21,13 @@ package com.datatorrent.benchmark;
 import org.apache.hadoop.conf.Configuration;
 
 import com.datatorrent.api.Context.PortContext;
+import com.datatorrent.api.Context;
 import com.datatorrent.api.DAG;
+import com.datatorrent.api.StreamCodec;
 import com.datatorrent.api.DAG.Locality;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
+import com.datatorrent.netlet.util.Slice;
 
 /**
  * Performance Demo Application:
@@ -55,6 +58,28 @@ import com.datatorrent.api.annotation.ApplicationAnnotation;
 @ApplicationAnnotation(name="PerformanceBenchmarkingApp")
 public abstract class Benchmark
 {
+  public static class ByteArrayStreamCodec implements StreamCodec<byte[]> 
+  {
+
+    @Override
+    public Object fromByteArray(Slice arg0)
+    {
+      return arg0.buffer;
+    }
+
+    @Override
+    public int getPartition(byte[] arg0)
+    {
+      return arg0.hashCode();
+    }
+
+    @Override
+    public Slice toByteArray(byte[] arg0)
+    {
+      return new Slice(arg0);
+    }
+  
+  }
   static abstract class AbstractApplication implements StreamingApplication
   {
     public static final int QUEUE_CAPACITY = 32 * 1024;
@@ -66,6 +91,9 @@ public abstract class Benchmark
       dag.getMeta(wordGenerator).getMeta(wordGenerator.output).getAttributes().put(PortContext.QUEUE_CAPACITY, QUEUE_CAPACITY);
 
       WordCountOperator<byte[]> counter = dag.addOperator("counter", new WordCountOperator<byte[]>());
+      if(counter.isCustomCodec()) {
+        dag.setInputPortAttribute(counter.input, Context.PortContext.STREAM_CODEC, new ByteArrayStreamCodec());
+      }
       dag.getMeta(counter).getMeta(counter.input).getAttributes().put(PortContext.QUEUE_CAPACITY, QUEUE_CAPACITY);
 
       dag.addStream("Generator2Counter", wordGenerator.output, counter.input).setLocality(getLocality());

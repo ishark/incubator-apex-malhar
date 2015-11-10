@@ -24,8 +24,11 @@ package com.datatorrent.benchmark;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.Operator;
 import com.datatorrent.api.Context.OperatorContext;
+import com.datatorrent.api.StreamCodec;
+import com.datatorrent.netlet.util.Slice;
 
 import java.util.ArrayList;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,8 +46,14 @@ public class WordCountOperator<T> implements Operator
     {
       count++;
     }
-
+    
+//    @Override
+//    public StreamCodec<T> getStreamCodec() {
+//      return (StreamCodec<T>) new ByteArrayStreamCodec();
+//    }
   };
+
+  private boolean customCodec;
   private transient ArrayList<Integer> counts;
   private transient int count;
   private long startmillis;
@@ -83,6 +92,15 @@ public class WordCountOperator<T> implements Operator
   {
     counts = new ArrayList<Integer>();
     millis = new ArrayList<Integer>();
+  }
+  public boolean isCustomCodec()
+  {
+    return customCodec;
+  }
+
+  public void setCustomCodec(boolean customCodec)
+  {
+    this.customCodec = customCodec;
   }
   private static final Logger logger = LoggerFactory.getLogger(WordCountOperator.class);
 }
