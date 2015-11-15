@@ -22,11 +22,14 @@ import org.apache.hadoop.conf.Configuration;
 
 import com.datatorrent.lib.io.ConsoleOutputOperator;
 import com.datatorrent.lib.testbench.RandomEventGenerator;
-
+import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DAG;
 import com.datatorrent.api.DAG.Locality;
+import com.datatorrent.api.DefaultOutputPort;
+import com.datatorrent.api.InputOperator;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.api.annotation.ApplicationAnnotation;
+import com.datatorrent.common.util.BaseOperator;
 
 /**
  * Monte Carlo PI estimation demo : <br>
@@ -42,8 +45,8 @@ import com.datatorrent.api.annotation.ApplicationAnnotation;
  * Run Success : <br>
  * For successful deployment and run, user should see something like the
  * following output on the console (since the input sequence of random numbers
- * can vary from one run to the next, there will be some variation in the
- * output values):
+ * can vary from one run to the next, there will be some variation in the output
+ * values):
  *
  * <pre>
  * 3.1430480549199085
@@ -75,19 +78,65 @@ import com.datatorrent.api.annotation.ApplicationAnnotation;
  *
  * @since 0.3.2
  */
-@ApplicationAnnotation(name="PiDemo")
+@ApplicationAnnotation(name = "PiDemo")
 public class Application implements StreamingApplication
 {
+  public static class AscendingNumberOperator implements InputOperator
+  {
+
+    @Override
+    public void beginWindow(long windowId)
+    {
+      // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void endWindow()
+    {
+      // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void setup(OperatorContext context)
+    {
+      // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void teardown()
+    {
+      // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void emitTuples()
+    {
+      integer_data.emit(count++);
+      // TODO Auto-generated method stub
+
+    }
+
+    public final transient DefaultOutputPort<Integer> integer_data = new DefaultOutputPort<Integer>();
+    private int count = 0;
+
+  }
+
   private final Locality locality = null;
 
   @Override
   public void populateDAG(DAG dag, Configuration conf)
   {
-    RandomEventGenerator rand = dag.addOperator("rand", new RandomEventGenerator());
-    PiCalculateOperator calc = dag.addOperator("picalc", new PiCalculateOperator());
+    AscendingNumberOperator rand = dag.addOperator("rand", new AscendingNumberOperator());
+    // PiCalculateOperator calc = dag.addOperator("picalc", new PiCalculateOperator());
     ConsoleOutputOperator console = dag.addOperator("console", new ConsoleOutputOperator());
-    dag.addStream("rand_calc", rand.integer_data, calc.input).setLocality(locality);
-    dag.addStream("rand_console",calc.output, console.input).setLocality(locality);
+    //    dag.addStream("rand_calc", rand.integer_data, calc.input);//.setLocality(locality);
+    //    dag.addStream("rand_console",calc.output, console.input);//.setLocality(locality);
+    dag.addStream("rand_calc", rand.integer_data, console.input);//.setLocality(locality);
+
   }
 
 }

@@ -38,7 +38,7 @@ public class ApplicationTest
 	    conf.addResource("dt-site-pi.xml");
 	    lma.prepareDAG(new Application(), conf);
 	    LocalMode.Controller lc = lma.getController();
-	    lc.run(10000);
+	    lc.run(100000);
   
   }
 }

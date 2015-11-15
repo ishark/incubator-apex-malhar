@@ -18,6 +18,8 @@
  */
 package com.datatorrent.benchmark;
 
+import java.io.Serializable;
+
 import org.apache.hadoop.conf.Configuration;
 
 import com.datatorrent.api.Context.PortContext;
@@ -58,7 +60,7 @@ import com.datatorrent.netlet.util.Slice;
 @ApplicationAnnotation(name="PerformanceBenchmarkingApp")
 public abstract class Benchmark
 {
-  public static class ByteArrayStreamCodec implements StreamCodec<byte[]> 
+  public static class ByteArrayStreamCodec implements StreamCodec<byte[]>, Serializable
   {
 
     @Override
