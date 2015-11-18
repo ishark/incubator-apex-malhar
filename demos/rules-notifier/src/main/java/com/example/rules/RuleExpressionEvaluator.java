@@ -4,20 +4,24 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.codehaus.commons.compiler.CompileException;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.janino.ExpressionEvaluator;
+import org.codehaus.janino.ScriptEvaluator;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.DefaultOutputPort;
+import com.datatorrent.api.annotation.InputPortFieldAnnotation;
 import com.datatorrent.common.util.BaseOperator;
 import com.datatorrent.netlet.util.DTThrowable;
 
-public class RuleExpressionEvaluator extends BaseOperator
+public class RuleExpressionEvaluator<T> extends BaseOperator
 {
-  public final transient DefaultOutputPort<Integer> output = new DefaultOutputPort<Integer>();
+  public final transient DefaultOutputPort<String> output = new DefaultOutputPort<String>();
   private transient ExpressionEvaluator ee;
   private String expression;
 
@@ -43,16 +47,21 @@ public class RuleExpressionEvaluator extends BaseOperator
       ee = new ExpressionEvaluator(expression, // expression
           boolean.class, // expressionType
           getParamNames(), // parameterNames
-          getParameterTypes() // parameterTypes
+          getParameterTypes(), // parameterTypes
+          new Class[] {JSONException.class}, 
+          null
       );
-    } catch (CompileException ex) {
+    } catch (Exception ex) {
       logger.error("uh oh!! ", ex);
       DTThrowable.rethrow(ex);
-    }
+    } 
   }
 
   private Class[] getParameterTypes()
   {
+    if(parametersNameTypes.size() == 0) {
+      return new Class[0];
+    }
     Class[] paramTypes = new Class[1];
     parametersNameTypes.values().toArray(paramTypes);
     return paramTypes;
@@ -60,20 +69,42 @@ public class RuleExpressionEvaluator extends BaseOperator
 
   private String[] getParamNames()
   {
+    if(parametersNameTypes.size() == 0) {
+      return new String[0];
+    }
     String[] paramNames = new String[1];
     parametersNameTypes.keySet().toArray(paramNames);
     return paramNames;
   }
 
-  public final transient DefaultInputPort<Integer> input = new DefaultInputPort<Integer>()
+  @InputPortFieldAnnotation(optional = true)
+  public final transient DefaultInputPort<T> input = new DefaultInputPort<T>()
   {
     @Override
-    public void process(Integer tuple)
+    public void process(T tuple)
     {
       try {
         boolean result = (Boolean)ee.evaluate(new Object[] { tuple });
         if (result) {
-          output.emit(tuple);
+          output.emit(String.valueOf(tuple));
+        }
+      } catch (InvocationTargetException ex) {
+        logger.error("uh oh! while process:", ex);
+      }
+    }
+  };
+
+  @InputPortFieldAnnotation(optional = true)
+  public final transient DefaultInputPort<JSONObject> inputJson = new DefaultInputPort<JSONObject>()
+  {
+
+    @Override
+    public void process(JSONObject tuple)
+    {
+      try {
+        boolean result = (Boolean)ee.evaluate(new Object[] { tuple });
+        if (result) {
+          output.emit(String.valueOf(tuple));
         }
       } catch (InvocationTargetException ex) {
         logger.error("uh oh! while process:", ex);
