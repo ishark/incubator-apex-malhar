@@ -15,7 +15,7 @@ public class RandomNumberGenerator extends BaseOperator implements InputOperator
   private int numTuples = 100;
   private transient int count = 0;
 
-  public final transient DefaultOutputPort<Double> out = new DefaultOutputPort<Double>();
+  public final transient DefaultOutputPort<Integer> out = new DefaultOutputPort<Integer>();
 
   @Override
   public void beginWindow(long windowId)
@@ -27,7 +27,7 @@ public class RandomNumberGenerator extends BaseOperator implements InputOperator
   public void emitTuples()
   {
     if (count++ < 100) {
-      out.emit(Math.random());
+      out.emit((int)Math.random());
     }
   }
 
