@@ -28,6 +28,9 @@ public class RuleExpressionEvaluator<T> extends BaseOperator
   private Map<String, Class> parametersNameTypes = new HashMap<>();
   private Map<String, String> expressions = new HashMap<>();
 
+  private String addRule;
+  private String removeRule;
+  
   private MatchRules matchRules;
 
   public static enum MatchRules
@@ -194,6 +197,19 @@ public class RuleExpressionEvaluator<T> extends BaseOperator
       setExpression();
       createExpression();
     }
+  }
+
+  public void setAddRule(String addRule)
+  {
+    String[] parts = addRule.split(":");
+    if(parts.length >= 2) {
+      addExpression(parts[0], parts[1]);
+    }
+  }
+
+  public void setRemoveRule(String removeRule)
+  {
+    removeExpression(removeRule);
   }
 
   private static final Logger logger = LoggerFactory.getLogger(RuleExpressionEvaluator.class);

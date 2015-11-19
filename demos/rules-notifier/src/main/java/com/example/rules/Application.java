@@ -136,16 +136,16 @@ public class Application implements StreamingApplication
     // Rule eval
     RuleExpressionEvaluator<PojoObject> eval = addExpressionEvaluator(dag, randomGenerator);
     
-//    // Kafka
-//    KafkaSinglePortOutputOperator<String, String> kafkaOut = dag.addOperator("kafka", new KafkaSinglePortOutputOperator<String, String>());
-//    kafkaOut.setTopic("Alerts");
-//    Properties props = new Properties();
-//    props.setProperty("serializer.class", "kafka.serializer.StringEncoder");
-//    props.setProperty("key.serializer.class", "kafka.serializer.StringEncoder");
-//    props.put("metadata.broker.list", "localhost:9092");
-//    props.setProperty("producer.type", "async");
-//    kafkaOut.setConfigProperties(props);
-//    conf.set("dt.operator.KafkaMessageProducer.prop.configProperties(metadata.broker.list)", "localhost:9092");
+    // Kafka
+    KafkaSinglePortOutputOperator<String, String> kafkaOut = dag.addOperator("kafka", new KafkaSinglePortOutputOperator<String, String>());
+    kafkaOut.setTopic("Alerts");
+    Properties props = new Properties();
+    props.setProperty("serializer.class", "kafka.serializer.StringEncoder");
+    props.setProperty("key.serializer.class", "kafka.serializer.StringEncoder");
+    props.put("metadata.broker.list", "localhost:9092");
+    props.setProperty("producer.type", "async");
+    kafkaOut.setConfigProperties(props);
+    conf.set("dt.operator.KafkaMessageProducer.prop.configProperties(metadata.broker.list)", "localhost:9092");
 
     
     // Web Socket
