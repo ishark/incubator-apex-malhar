@@ -142,7 +142,7 @@ public class Application implements StreamingApplication
     Properties props = new Properties();
     props.setProperty("serializer.class", "kafka.serializer.StringEncoder");
     props.setProperty("key.serializer.class", "kafka.serializer.StringEncoder");
-    props.put("metadata.broker.list", "localhost:9092");
+    props.put("metadata.broker.list", "node17.morado.com:9092");
     props.setProperty("producer.type", "async");
     kafkaOut.setConfigProperties(props);
     conf.set("dt.operator.KafkaMessageProducer.prop.configProperties(metadata.broker.list)", "localhost:9092");
@@ -156,7 +156,7 @@ public class Application implements StreamingApplication
     socketOut.setUri(uri);
 
     //dag.addStream("stream", eval.output, cons.input, kafkaOut.inputPort).setLocality(Locality.CONTAINER_LOCAL);
-    dag.addStream("stream", eval.output, cons.input, socketOut.input).setLocality(Locality.CONTAINER_LOCAL);
+    dag.addStream("stream", eval.output, cons.input, socketOut.input, kafkaOut.inputPort);//.setLocality(Locality.CONTAINER_LOCAL);
     
     //dag.addStream("stream1", randomGenerator.outputJson, cons.input).setLocality(Locality.CONTAINER_LOCAL);
   }
@@ -168,7 +168,7 @@ public class Application implements StreamingApplication
     eval.addExpression("by10", "input.obj.counter% 100==0");
     eval.addExpression("by5", "input.obj.counter% 50==0");
     eval.setMatchRules(MatchRules.ANY);
-    dag.addStream("randomData", randomGenerator.outputPojo, eval.input).setLocality(Locality.CONTAINER_LOCAL);
+    dag.addStream("randomData", randomGenerator.outputPojo, eval.input);//.setLocality(Locality.CONTAINER_LOCAL);
     return eval;
   }
 }
