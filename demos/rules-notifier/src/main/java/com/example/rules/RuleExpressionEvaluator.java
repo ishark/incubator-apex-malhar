@@ -1,9 +1,12 @@
 package com.example.rules;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.codehaus.jackson.JsonParseException;
+import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.janino.ExpressionEvaluator;
 import org.codehaus.janino.ScriptEvaluator;
@@ -30,7 +33,9 @@ public class RuleExpressionEvaluator<T> extends BaseOperator
 
   private String addRule;
   private String removeRule;
-  
+
+  private Class tupleType;
+
   private MatchRules matchRules;
 
   public static enum MatchRules
@@ -51,18 +56,16 @@ public class RuleExpressionEvaluator<T> extends BaseOperator
           boolean.class, // expressionType
           getParamNames(), // parameterNames
           getParameterTypes(), // parameterTypes
-          new Class[] {JSONException.class}, 
-          null
-      );
+          new Class[] { JSONException.class }, null);
     } catch (Exception ex) {
       logger.error("uh oh!! ", ex);
       DTThrowable.rethrow(ex);
-    } 
+    }
   }
 
   private Class[] getParameterTypes()
   {
-    if(parametersNameTypes.size() == 0) {
+    if (parametersNameTypes.size() == 0) {
       return new Class[0];
     }
     Class[] paramTypes = new Class[1];
@@ -72,7 +75,7 @@ public class RuleExpressionEvaluator<T> extends BaseOperator
 
   private String[] getParamNames()
   {
-    if(parametersNameTypes.size() == 0) {
+    if (parametersNameTypes.size() == 0) {
       return new String[0];
     }
     String[] paramNames = new String[1];
@@ -98,19 +101,29 @@ public class RuleExpressionEvaluator<T> extends BaseOperator
   };
 
   @InputPortFieldAnnotation(optional = true)
-  public final transient DefaultInputPort<JSONObject> inputJson = new DefaultInputPort<JSONObject>()
+  public final transient DefaultInputPort<String> inputJson = new DefaultInputPort<String>()
   {
-
     @Override
-    public void process(JSONObject tuple)
+    public void process(String tuple)
     {
       try {
-        boolean result = (Boolean)ee.evaluate(new Object[] { tuple });
+        ObjectMapper mapper = new ObjectMapper();
+
+        boolean result = (Boolean)ee.evaluate(new Object[] { mapper.readValue(tuple, tupleType) });
         if (result) {
           output.emit(String.valueOf(tuple));
         }
       } catch (InvocationTargetException ex) {
         logger.error("uh oh! while process:", ex);
+      } catch (JsonParseException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      } catch (JsonMappingException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      } catch (IOException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
       }
     }
   };
@@ -202,7 +215,7 @@ public class RuleExpressionEvaluator<T> extends BaseOperator
   public void setAddRule(String addRule)
   {
     String[] parts = addRule.split(":");
-    if(parts.length >= 2) {
+    if (parts.length >= 2) {
       addExpression(parts[0], parts[1]);
     }
   }
@@ -210,6 +223,16 @@ public class RuleExpressionEvaluator<T> extends BaseOperator
   public void setRemoveRule(String removeRule)
   {
     removeExpression(removeRule);
+  }
+
+  public Class getTupleType()
+  {
+    return tupleType;
+  }
+
+  public void setTupleType(Class tupleType)
+  {
+    this.tupleType = tupleType;
   }
 
   private static final Logger logger = LoggerFactory.getLogger(RuleExpressionEvaluator.class);
