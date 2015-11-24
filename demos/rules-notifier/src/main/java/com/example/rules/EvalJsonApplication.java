@@ -18,10 +18,8 @@ public class EvalJsonApplication extends Application
     eval.addParameterNameType("input", PojoObject.class);
     eval.addExpression("by10", "input.obj.counter% 100==0");
     eval.addExpression("by5", "input.obj.counter% 50==0");
-    eval.setMatchRules(MatchRules.ANY);
+    eval.setMatchRules(MatchRules.ALL);
     
-//    eval.addParameterNameType("input", JSONObject.class);
-//    eval.addExpression("jsonCheck", "input.getJSONObject(\"obj\").getInt(\"counter\") %1000 ==0");
 
     dag.addStream("randomData", randomGenerator.outputPort, eval.inputJson).setLocality(Locality.CONTAINER_LOCAL);
     return eval;

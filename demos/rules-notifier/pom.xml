@@ -25,8 +25,8 @@
   <artifactId>rules-notifier</artifactId>
   <packaging>jar</packaging>
 
-  <name>Apache Apex Malhar (incubating) Pi Demo</name>
-  <description>Apex demo applications that calculate the value of Pi. This is a starting point to understand how Apex works.</description>
+  <name>Rule Noifier Demo Apache Apex (incubating)</name>
+  <description>Apex demo application that processes input Json String to apply rule filtering</description>
 
   <parent>
     <groupId>org.apache.apex</groupId>

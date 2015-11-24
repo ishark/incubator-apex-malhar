@@ -29,7 +29,7 @@ import com.datatorrent.lib.io.ConsoleOutputOperator;
 import com.datatorrent.lib.io.PubSubWebSocketOutputOperator;
 
 @ApplicationAnnotation(name = "Rule Notifier application")
-public class Application implements StreamingApplication
+public abstract class Application implements StreamingApplication
 {
   public static class PojoObject
   {
@@ -178,15 +178,15 @@ public class Application implements StreamingApplication
 
   }
 
-  public RuleExpressionEvaluator<String> addExpressionEvaluator(DAG dag,
-      KafkaSinglePortStringInputOperator randomGenerator)
-  {
-    RuleExpressionEvaluator<String> eval = dag.addOperator("rule", new RuleExpressionEvaluator<String>());
-    eval.addParameterNameType("input", PojoObject.class);
-    eval.addExpression("by10", "input.obj.counter% 100==0");
-    eval.addExpression("by5", "input.obj.counter% 50==0");
-    eval.setMatchRules(MatchRules.ANY);
-    dag.addStream("randomData", randomGenerator.outputPort, eval.input);//.setLocality(Locality.CONTAINER_LOCAL);
-    return eval;
-  }
+  abstract public RuleExpressionEvaluator<String> addExpressionEvaluator(DAG dag, KafkaSinglePortStringInputOperator randomGenerator);
+
+//  {
+//    RuleExpressionEvaluator<String> eval = dag.addOperator("rule", new RuleExpressionEvaluator<String>());
+//    eval.addParameterNameType("input", PojoObject.class);
+//    eval.addExpression("by10", "input.obj.counter% 100==0");
+//    eval.addExpression("by5", "input.obj.counter% 50==0");
+//    eval.setMatchRules(MatchRules.ANY);
+//    dag.addStream("randomData", randomGenerator.outputPort, eval.input);//.setLocality(Locality.CONTAINER_LOCAL);
+//    return eval;
+//  }
 }

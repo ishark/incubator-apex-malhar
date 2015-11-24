@@ -38,6 +38,8 @@ public class RuleExpressionEvaluator<T> extends BaseOperator
 
   private MatchRules matchRules;
 
+  private String combineRulesWith;
+  
   public static enum MatchRules
   {
     ALL, ANY
@@ -233,6 +235,24 @@ public class RuleExpressionEvaluator<T> extends BaseOperator
   public void setTupleType(Class tupleType)
   {
     this.tupleType = tupleType;
+  }
+
+  public String getCombineRulesWith()
+  {
+    return combineRulesWith;
+  }
+
+  public void setCombineRulesWith(String combineRulesWith)
+  {
+    if (this.combineRulesWith.toLowerCase().equals(combineRulesWith)) {
+      return;
+    }
+    this.combineRulesWith = combineRulesWith;
+    if(this.combineRulesWith.toLowerCase().equals("or")) {
+      setMatchRules(MatchRules.ANY);
+    } else if(this.combineRulesWith.toLowerCase().equals("and")) {
+      setMatchRules(MatchRules.ALL);
+    }
   }
 
   private static final Logger logger = LoggerFactory.getLogger(RuleExpressionEvaluator.class);
