@@ -1,26 +1,23 @@
 package com.example.rules;
 
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.janino.ExpressionEvaluator;
-import org.codehaus.janino.ScriptEvaluator;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.annotation.InputPortFieldAnnotation;
 import com.datatorrent.common.util.BaseOperator;
 import com.datatorrent.netlet.util.DTThrowable;
+import org.codehaus.jackson.JsonParseException;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.janino.ExpressionEvaluator;
+import org.codehaus.jettison.json.JSONException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class RuleExpressionEvaluator<T> extends BaseOperator
 {
@@ -53,15 +50,19 @@ public class RuleExpressionEvaluator<T> extends BaseOperator
 
   private void createExpression()
   {
-    try {
-      ee = new ExpressionEvaluator(expression, // expression
-          boolean.class, // expressionType
-          getParamNames(), // parameterNames
-          getParameterTypes(), // parameterTypes
-          new Class[] { JSONException.class }, null);
-    } catch (Exception ex) {
-      logger.error("uh oh!! ", ex);
-      DTThrowable.rethrow(ex);
+    if ((expression != null) && !expression.equals("")) {
+      try {
+        ee = new ExpressionEvaluator(expression, // expression
+                boolean.class, // expressionType
+                getParamNames(), // parameterNames
+                getParameterTypes(), // parameterTypes
+                new Class[]{JSONException.class}, null);
+      } catch (Exception ex) {
+        logger.error("uh oh!! ", ex);
+        DTThrowable.rethrow(ex);
+      }
+    } else {
+      ee = null;
     }
   }
 
@@ -106,26 +107,27 @@ public class RuleExpressionEvaluator<T> extends BaseOperator
   public final transient DefaultInputPort<String> inputJson = new DefaultInputPort<String>()
   {
     @Override
-    public void process(String tuple)
-    {
-      try {
-        ObjectMapper mapper = new ObjectMapper();
+    public void process(String tuple) {
+      if (ee != null) {
+        try {
+          ObjectMapper mapper = new ObjectMapper();
 
-        boolean result = (Boolean)ee.evaluate(new Object[] { mapper.readValue(tuple, tupleType) });
-        if (result) {
-          output.emit(String.valueOf(tuple));
+          boolean result = (Boolean) ee.evaluate(new Object[]{mapper.readValue(tuple, tupleType)});
+          if (result) {
+            output.emit(String.valueOf(tuple));
+          }
+        } catch (InvocationTargetException ex) {
+          logger.error("uh oh! while process:", ex);
+        } catch (JsonParseException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+        } catch (JsonMappingException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+        } catch (IOException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
         }
-      } catch (InvocationTargetException ex) {
-        logger.error("uh oh! while process:", ex);
-      } catch (JsonParseException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      } catch (JsonMappingException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      } catch (IOException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
       }
     }
   };
