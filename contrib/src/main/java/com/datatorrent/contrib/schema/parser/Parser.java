@@ -19,6 +19,8 @@
 package com.datatorrent.contrib.schema.parser;
 
 import org.apache.hadoop.classification.InterfaceStability;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.datatorrent.api.Context;
 import com.datatorrent.api.Context.PortContext;
@@ -47,8 +49,7 @@ import com.datatorrent.contrib.converter.Converter;
  * @since 3.2.0
  */
 @InterfaceStability.Evolving
-public abstract class Parser<INPUT> extends BaseOperator implements Converter<INPUT, Object>,
-    ActivationListener<Context>
+public abstract class Parser<INPUT> extends BaseOperator implements Converter<INPUT, Object>
 {
   protected transient Class<?> clazz;
 
@@ -61,24 +62,28 @@ public abstract class Parser<INPUT> extends BaseOperator implements Converter<IN
     }
   };
 
-  @OutputPortFieldAnnotation(optional = true)
   public transient DefaultOutputPort<INPUT> err = new DefaultOutputPort<INPUT>();
-
+  public transient DefaultOutputPort<INPUT> validatedOutput = new DefaultOutputPort<INPUT>();
   public transient DefaultInputPort<INPUT> in = new DefaultInputPort<INPUT>()
   {
     @Override
     public void process(INPUT inputTuple)
     {
-      Object tuple = convert(inputTuple);
-      if (tuple == null && err.isConnected()) {
-        err.emit(inputTuple);
-        return;
-      }
-      if (out.isConnected()) {
-        out.emit(tuple);
-      }
+      processTuple(inputTuple);
     }
   };
+
+  public void processTuple(INPUT inputTuple)
+  {
+    Object tuple = convert(inputTuple);
+    if (tuple == null && err.isConnected()) {
+      err.emit(inputTuple);
+      return;
+    }
+    if (out.isConnected()) {
+      out.emit(tuple);
+    }
+  }
 
   /**
    * Get the class that needs to be formatted
@@ -99,5 +104,4 @@ public abstract class Parser<INPUT> extends BaseOperator implements Converter<IN
   {
     this.clazz = clazz;
   }
-
 }

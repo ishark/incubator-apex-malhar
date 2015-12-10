@@ -18,7 +18,11 @@
  */
 package com.datatorrent.contrib.schema.parser;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
+
+import javax.xml.bind.annotation.adapters.XmlAdapter;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import org.joda.time.DateTime;
 import org.junit.Assert;
@@ -32,7 +36,7 @@ import com.datatorrent.lib.util.TestUtils;
 
 public class XmlParserTest
 {
-  XmlParser operator;
+  XMLParserWithValidator operator;
   CollectorTestSink<Object> validDataSink;
   CollectorTestSink<String> invalidDataSink;
 
@@ -46,9 +50,8 @@ public class XmlParserTest
     protected void starting(Description description)
     {
       super.starting(description);
-      operator = new XmlParser();
+      operator = new XMLParserWithValidator();
       operator.setClazz(EmployeeBean.class);
-      operator.setDateFormats("yyyy-MM-dd"); //setting default date pattern
       validDataSink = new CollectorTestSink<Object>();
       invalidDataSink = new CollectorTestSink<String>();
       TestUtils.setSink(operator.out, validDataSink);
@@ -72,7 +75,6 @@ public class XmlParserTest
         + "</com.datatorrent.contrib.schema.parser.XmlParserTest_-EmployeeBean>";
 
     operator.setup(null);
-    operator.activate(null);
     operator.in.process(tuple);
     Assert.assertEquals(1, validDataSink.collectedTuples.size());
     Assert.assertEquals(0, invalidDataSink.collectedTuples.size());
@@ -92,12 +94,60 @@ public class XmlParserTest
   public void testXmlToPojoWithAliasDateFormat()
   {
     String tuple = "<EmployeeBean>" + "<name>john</name>" + "<dept>cs</dept>" + "<eid>1</eid>"
-        + "<dateOfJoining>2015-JAN-01</dateOfJoining>" + "</EmployeeBean>";
+        + "<dateOfJoiningYYYYMMDDFormat>2015-JAN-01</dateOfJoiningYYYYMMDDFormat>" + "</EmployeeBean>";
 
-    operator.setAlias("EmployeeBean");
-    operator.setDateFormats("yyyy-MM-dd,yyyy-MMM-dd");
+    operator.setClazz(EmployeeBeanOverride.class);
     operator.setup(null);
-    operator.activate(null);
+    operator.in.process(tuple);
+    Assert.assertEquals(1, validDataSink.collectedTuples.size());
+    Assert.assertEquals(0, invalidDataSink.collectedTuples.size());
+    Object obj = validDataSink.collectedTuples.get(0);
+    Assert.assertNotNull(obj);
+    Assert.assertEquals(EmployeeBeanOverride.class, obj.getClass());
+    EmployeeBeanOverride pojo = (EmployeeBeanOverride)obj;
+    Assert.assertEquals("john", pojo.getName());
+    Assert.assertEquals("cs", pojo.getDept());
+    Assert.assertEquals(1, pojo.getEid());
+    Assert.assertEquals(2015, new DateTime(pojo.getDateOfJoining()).getYear());
+    Assert.assertEquals(1, new DateTime(pojo.getDateOfJoining()).getMonthOfYear());
+    Assert.assertEquals(1, new DateTime(pojo.getDateOfJoining()).getDayOfMonth());
+  }
+
+  @Test
+  public void testXSDValidation()
+  {
+    String xsdFile = "src/test/resources/com/datatorrent/contrib/xmlParser/employeeBean.xsd";
+    operator.setSchemaFile(xsdFile);
+    // Check without address field xsd validation fails
+    String tuple = "<EmployeeBean>" + "<name>john</name>" + "<dept>cs</dept>" + "<eid>1</eid>"
+        + "<dateOfJoining>2015-01-01</dateOfJoining>" + "</EmployeeBean>";
+    operator.setup(null);
+    operator.in.process(tuple);
+    Assert.assertEquals(0, validDataSink.collectedTuples.size());
+    Assert.assertEquals(1, invalidDataSink.collectedTuples.size());
+    Assert.assertEquals(tuple, invalidDataSink.collectedTuples.get(0));
+
+    // Check extra fields present in xml, which are not part of xsd
+    tuple = "<EmployeeBean>" + "<name>john</name>"
+        + "<firstname>john</firstname>" //incorrect field name, xsd validation would fail
+        + "<dept>cs</dept>" + "<eid>1</eid>" + "<dateOfJoining>2015-01-01</dateOfJoining>" + "<address>"
+        + "<city>new york</city>" + "<country>US</country>" + "</address>" + "</EmployeeBean>";
+
+    validDataSink.collectedTuples.clear();
+    invalidDataSink.collectedTuples.clear();
+    operator.in.process(tuple);
+    Assert.assertEquals(0, validDataSink.collectedTuples.size());
+    Assert.assertEquals(1, invalidDataSink.collectedTuples.size());
+    Assert.assertEquals(tuple, invalidDataSink.collectedTuples.get(0));
+
+    // Check with all fields in xsd, POJO output should be received
+
+    tuple = "<EmployeeBean>" + "<name>john</name>" + "<dept>cs</dept>" + "<eid>1</eid>"
+        + "<dateOfJoining>2015-01-01</dateOfJoining>" + "<address>" + "<city>new york</city>" + "<country>US</country>"
+        + "</address>" + "</EmployeeBean>";
+
+    validDataSink.collectedTuples.clear();
+    invalidDataSink.collectedTuples.clear();
     operator.in.process(tuple);
     Assert.assertEquals(1, validDataSink.collectedTuples.size());
     Assert.assertEquals(0, invalidDataSink.collectedTuples.size());
@@ -111,6 +161,9 @@ public class XmlParserTest
     Assert.assertEquals(2015, new DateTime(pojo.getDateOfJoining()).getYear());
     Assert.assertEquals(1, new DateTime(pojo.getDateOfJoining()).getMonthOfYear());
     Assert.assertEquals(1, new DateTime(pojo.getDateOfJoining()).getDayOfMonth());
+    Assert.assertEquals(Address.class, pojo.getAddress().getClass());
+    Assert.assertEquals("new york", pojo.getAddress().getCity());
+    Assert.assertEquals("US", pojo.getAddress().getCountry());
   }
 
   @Test
@@ -119,9 +172,7 @@ public class XmlParserTest
     String tuple = "<EmployeeBean>" + "<name>john</name>" + "<dept>cs</dept>" + "<eid>1</eid>"
         + "<dateOfJoining>2015-01-01</dateOfJoining>" + "</EmployeeBean>";
 
-    operator.setAlias("EmployeeBean");
     operator.setup(null);
-    operator.activate(null);
     operator.in.process(tuple);
     Assert.assertEquals(1, validDataSink.collectedTuples.size());
     Assert.assertEquals(0, invalidDataSink.collectedTuples.size());
@@ -140,14 +191,11 @@ public class XmlParserTest
   @Test
   public void testXmlToPojoIncorrectXML()
   {
-    String tuple = "<EmployeeBean>"
-        + "<firstname>john</firstname>" //incorrect field name
-        + "<dept>cs</dept>" + "<eid>1</eid>" + "<dateOfJoining>2015-01-01 00:00:00.00 IST</dateOfJoining>"
-        + "</EmployeeBean>";
+    String tuple = "<EmployeeBean>" + "<firstname>john</firstname>" //incorrect field name is ignored by JAXB 
+        + "<dept>cs</dept>" + "<eid>1</eid>" + "<dateOfJoining>2015-01-01 00:00:00.00 IST</dateOfJoining>";
+    // + "</EmployeeBean>"; // Incorrect XML format
 
-    operator.setAlias("EmployeeBean");
     operator.setup(null);
-    operator.activate(null);
     operator.in.process(tuple);
     Assert.assertEquals(0, validDataSink.collectedTuples.size());
     Assert.assertEquals(1, invalidDataSink.collectedTuples.size());
@@ -163,7 +211,6 @@ public class XmlParserTest
         + "</com.datatorrent.contrib.schema.parser.XmlParserTest_-EmployeeBean>";
 
     operator.setup(null);
-    operator.activate(null);
     operator.in.process(tuple);
     Assert.assertEquals(1, validDataSink.collectedTuples.size());
     Assert.assertEquals(0, invalidDataSink.collectedTuples.size());
@@ -182,13 +229,59 @@ public class XmlParserTest
     Assert.assertEquals(1, new DateTime(pojo.getDateOfJoining()).getDayOfMonth());
   }
 
+  public static class DateAdapter extends XmlAdapter<String, Date>
+  {
+
+    private String dateFormatString = "yyyy-MMM-dd";
+    private SimpleDateFormat dateFormat = new SimpleDateFormat(dateFormatString);
+
+    @Override
+    public String marshal(Date v) throws Exception
+    {
+      return dateFormat.format(v);
+    }
+
+    @Override
+    public Date unmarshal(String v) throws Exception
+    {
+      return dateFormat.parse(v);
+    }
+
+    public String getDateFormatString()
+    {
+      return dateFormatString;
+    }
+
+    public void setDateFormatString(String dateFormatString)
+    {
+      this.dateFormatString = dateFormatString;
+    }
+
+  }
+
+  public static class EmployeeBeanOverride extends EmployeeBean
+  {
+    @XmlJavaTypeAdapter(DateAdapter.class)
+    public void setDateOfJoiningYYYYMMDDFormat(Date dateOfJoining)
+    {
+      this.dateOfJoining = dateOfJoining;
+    }
+  }
+
   public static class EmployeeBean
   {
+
+    @Override
+    public String toString()
+    {
+      return "EmployeeBean [name=" + name + ", dept=" + dept + ", eid=" + eid + ", dateOfJoining=" + dateOfJoining
+          + ", address=" + address + "]";
+    }
 
     private String name;
     private String dept;
     private int eid;
-    private Date dateOfJoining;
+    protected Date dateOfJoining;
     private Address address;
 
     public String getName()
@@ -245,6 +338,12 @@ public class XmlParserTest
   public static class Address
   {
 
+    @Override
+    public String toString()
+    {
+      return "Address [city=" + city + ", country=" + country + "]";
+    }
+
     private String city;
     private String country;
 
@@ -268,5 +367,4 @@ public class XmlParserTest
       this.country = country;
     }
   }
-
 }

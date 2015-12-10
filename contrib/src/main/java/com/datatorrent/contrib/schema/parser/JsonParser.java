@@ -27,11 +27,13 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.ObjectReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.classification.InterfaceStability;
 
+import com.amazonaws.util.json.JSONObject;
+
 import com.datatorrent.api.Context;
+import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.netlet.util.DTThrowable;
 
 /**
@@ -52,7 +54,7 @@ public class JsonParser extends Parser<String>
   protected String dateFormat;
 
   @Override
-  public void activate(Context context)
+  public void setup(OperatorContext context)
   {
     try {
       ObjectMapper mapper = new ObjectMapper();
@@ -66,10 +68,6 @@ public class JsonParser extends Parser<String>
     }
   }
 
-  @Override
-  public void deactivate()
-  {
-  }
 
   @Override
   public Object convert(String tuple)

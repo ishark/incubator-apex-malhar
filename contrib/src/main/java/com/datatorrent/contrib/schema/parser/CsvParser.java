@@ -35,8 +35,9 @@ import org.supercsv.cellprocessor.ParseLong;
 import org.supercsv.cellprocessor.ift.CellProcessor;
 import org.supercsv.io.CsvBeanReader;
 import org.supercsv.prefs.CsvPreference;
-
 import org.apache.hadoop.classification.InterfaceStability;
+
+import com.sun.xml.internal.xsom.impl.scd.Iterators.Map;
 
 import com.datatorrent.api.Context;
 import com.datatorrent.api.Context.OperatorContext;
@@ -147,18 +148,6 @@ public class CsvParser extends Parser<String>
         processors[i] = new Optional(new ParseDate(dateFormat == null ? "dd/MM/yyyy" : dateFormat));
       }
     }
-  }
-
-  @Override
-  public void activate(Context context)
-  {
-
-  }
-
-  @Override
-  public void deactivate()
-  {
-
   }
 
   @Override

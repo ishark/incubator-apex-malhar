@@ -20,14 +20,13 @@ package com.datatorrent.contrib.schema.parser;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.apache.hadoop.classification.InterfaceStability;
 
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.XStreamException;
 import com.thoughtworks.xstream.converters.basic.DateConverter;
 
-import com.datatorrent.api.Context;
+import com.datatorrent.api.Context.OperatorContext;
 
 /**
  * Operator that converts XML string to Pojo <br>
@@ -58,7 +57,7 @@ public class XmlParser extends Parser<String>
   }
 
   @Override
-  public void activate(Context context)
+  public void setup(OperatorContext context)
   {
     xstream = new XStream();
     if (alias != null) {
@@ -72,12 +71,6 @@ public class XmlParser extends Parser<String>
       String[] dateFormat = dateFormats.split(",");
       xstream.registerConverter(new DateConverter(dateFormat[0], dateFormat));
     }
-  }
-
-  @Override
-  public void deactivate()
-  {
-
   }
 
   @Override
