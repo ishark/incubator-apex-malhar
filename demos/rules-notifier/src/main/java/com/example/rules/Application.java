@@ -3,30 +3,27 @@
  */
 package com.example.rules;
 
-import java.io.IOException;
-import java.net.URI;
-import java.util.Properties;
-import java.util.UUID;
-
-import org.apache.hadoop.conf.Configuration;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
-
-import com.example.rules.RuleExpressionEvaluator.MatchRules;
-
-import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.api.Context.OperatorContext;
+import com.datatorrent.api.DAG;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.InputOperator;
 import com.datatorrent.api.StreamingApplication;
-import com.datatorrent.api.DAG;
+import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.contrib.kafka.KafkaConsumer;
 import com.datatorrent.contrib.kafka.KafkaSinglePortOutputOperator;
 import com.datatorrent.contrib.kafka.KafkaSinglePortStringInputOperator;
 import com.datatorrent.contrib.kafka.SimpleKafkaConsumer;
 import com.datatorrent.lib.io.ConsoleOutputOperator;
 import com.datatorrent.lib.io.PubSubWebSocketOutputOperator;
+import org.apache.hadoop.conf.Configuration;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
+
+import java.io.IOException;
+import java.net.URI;
+import java.util.Properties;
+import java.util.UUID;
 
 @ApplicationAnnotation(name = "Rule Notifier application")
 public abstract class Application implements StreamingApplication
@@ -34,7 +31,7 @@ public abstract class Application implements StreamingApplication
   public static class PojoObject
   {
     public String uuid;
-    public NestedObject obj;
+    public NestedObject readings;
 
     public PojoObject()
     {
@@ -44,24 +41,37 @@ public abstract class Application implements StreamingApplication
     public PojoObject(int count)
     {
       uuid = UUID.randomUUID().toString();
-      obj = new NestedObject(count);
+      readings = new NestedObject(count);
+    }
+
+    public PojoObject(int sensor1, int sensor2)
+    {
+      uuid = UUID.randomUUID().toString();
+      readings = new NestedObject(sensor1, sensor2);
     }
 
     @Override
     public String toString()
     {
-      return "{uuid = " + uuid + ", nestedObject = " + obj + "}";
+      return "{uuid = " + uuid + ", nestedObject = " + readings + "}";
     }
 
   }
 
   public static class NestedObject
   {
-    public int counter;
+    public int sensor1;
+    public int sensor2;
 
     public NestedObject(int count)
     {
-      counter = count;
+      this.sensor1 = count;
+    }
+
+    public NestedObject(int sensor1, int sensor2)
+    {
+      this.sensor1 = sensor1;
+      this.sensor2 = sensor2;
     }
 
     public NestedObject()
@@ -72,7 +82,7 @@ public abstract class Application implements StreamingApplication
     @Override
     public String toString()
     {
-      return "{counter = " + counter + "}";
+      return "{sensor1 = " + sensor1 + ", sensor2 = " + sensor2 + "}";
     }
   }
 
@@ -144,8 +154,8 @@ public abstract class Application implements StreamingApplication
     KafkaSinglePortStringInputOperator randomGenerator = dag.addOperator("kafkaInput",
         new KafkaSinglePortStringInputOperator());
     KafkaConsumer consumer = new SimpleKafkaConsumer();
-    consumer.setTopic("input");
-    consumer.setInitialOffset("earliest");
+    consumer.setTopic("RulesInput");
+    //consumer.setInitialOffset("earliest");
     consumer.setZookeeper("node17.morado.com:2181");
     //    consumer.setZookeeper("localhost:2181");
     randomGenerator.setConsumer(consumer);
@@ -156,7 +166,7 @@ public abstract class Application implements StreamingApplication
     // Kafka
     KafkaSinglePortOutputOperator<String, String> kafkaOut = dag.addOperator("kafka",
         new KafkaSinglePortOutputOperator<String, String>());
-    kafkaOut.setTopic("Alerts");
+    kafkaOut.setTopic("RulesAlerts");
     Properties props = new Properties();
     props.setProperty("serializer.class", "kafka.serializer.StringEncoder");
     props.setProperty("key.serializer.class", "kafka.serializer.StringEncoder");
@@ -169,7 +179,7 @@ public abstract class Application implements StreamingApplication
     // Web Socket
     PubSubWebSocketOutputOperator<String> socketOut = dag.addOperator("socket",
         new PubSubWebSocketOutputOperator<String>());
-    socketOut.setTopic("Alerts");
+    socketOut.setTopic("RulesAlerts");
     String gatewayAddress = "node0.morado.com:9099";
     URI uri = URI.create("ws://" + gatewayAddress + "/pubsub");
     socketOut.setUri(uri);
