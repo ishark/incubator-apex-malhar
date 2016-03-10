@@ -25,7 +25,10 @@ import org.apache.hadoop.fs.FileSystem;
 
 import com.google.common.base.Splitter;
 
-public class HDFSBlockReader extends FSSliceReader
+/**
+ * BlockReader extends {@link FSSliceReader} to accept case insensitive uri
+ */
+public class BlockReader extends FSSliceReader
 {
   protected String uri;
 
@@ -38,7 +41,7 @@ public class HDFSBlockReader extends FSSliceReader
   /**
    * Sets the uri
    *
-   * @param uri
+   * @param uri of form hdfs://hostname:port/path/to/input
    */
   public void setUri(String uri)
   {
@@ -54,25 +57,25 @@ public class HDFSBlockReader extends FSSliceReader
    * Converts Scheme part of the URI to lower case. Multiple URI can be comma separated. If no scheme is there, no
    * change is made.
    * 
-   * @param
+   * @param uri
    * @return String with scheme part as lower case
    */
-  private static String convertSchemeToLowerCase(String uri)
+  private String convertSchemeToLowerCase(String uri)
   {
     if (uri == null) {
       return null;
     }
-    StringBuilder inputMod = new StringBuilder();
+    StringBuilder uriList = new StringBuilder();
     for (String f : Splitter.on(",").omitEmptyStrings().split(uri)) {
       String scheme = URI.create(f).getScheme();
       if (scheme != null) {
-        inputMod.append(f.replaceFirst(scheme, scheme.toLowerCase()));
+        uriList.append(f.replaceFirst(scheme, scheme.toLowerCase()));
       } else {
-        inputMod.append(f);
+        uriList.append(f);
       }
-      inputMod.append(",");
+      uriList.append(",");
     }
-    inputMod.setLength(inputMod.length() - 1);
-    return inputMod.toString();
+    uriList.setLength(uriList.length() - 1);
+    return uriList.toString();
   }
 }

@@ -30,8 +30,13 @@ import org.apache.hadoop.fs.Path;
 
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.lib.io.block.BlockMetadata.FileBlockMetadata;
-import com.datatorrent.lib.io.block.HDFSBlockMetadata;
 
+/**
+ * HDFSFileSplitter extends {@link FileSplitterInput} to,
+ * 1. Add relative path to file metadata.
+ * 2. Ignore HDFS temp files (files with extensions _COPYING_).
+ * 3. Set sequencial read option on readers.
+ */
 public class HDFSFileSplitter extends FileSplitterInput
 {
   private boolean sequencialFileRead;
@@ -75,19 +80,11 @@ public class HDFSFileSplitter extends FileSplitterInput
   }
 
   @Override
-  protected HDFSBlockMetadata createBlockMetadata(FileMetadata fileMetadata)
+  protected FileBlockMetadata createBlockMetadata(FileMetadata fileMetadata)
   {
-    HDFSBlockMetadata blockMetadta = new HDFSBlockMetadata(fileMetadata.getFilePath());
+    FileBlockMetadata blockMetadta = new FileBlockMetadata(fileMetadata.getFilePath());
     blockMetadta.setReadBlockInSequence(sequencialFileRead);
     return blockMetadta;
-  }
-
-  @Override
-  protected HDFSBlockMetadata buildBlockMetadata(long pos, long lengthOfFileInBlock, int blockNumber, FileMetadata fileMetadata, boolean isLast)
-  {
-    FileBlockMetadata metadata = super.buildBlockMetadata(pos, lengthOfFileInBlock, blockNumber, fileMetadata, isLast);
-    HDFSBlockMetadata blockMetadata = (HDFSBlockMetadata)metadata;
-    return blockMetadata;
   }
 
   public boolean isSequencialFileRead()
@@ -100,6 +97,10 @@ public class HDFSFileSplitter extends FileSplitterInput
     this.sequencialFileRead = sequencialFileRead;
   }
 
+  /**
+   * HDFSScanner extends {@link TimeBasedDirectoryScanner} to ignore HDFS temporary files
+   * and files containing unsupported characters. 
+   */
   public static class HDFSScanner extends TimeBasedDirectoryScanner
   {
     protected static final String HDFS_TEMP_FILE = ".*._COPYING_";
@@ -141,6 +142,9 @@ public class HDFSFileSplitter extends FileSplitterInput
     }
   }
 
+  /**
+   * Adds relative path to {@link FileMetadata}
+   */
   public static class HDFSFileMetaData extends FileMetadata
   {
     private String relativePath;

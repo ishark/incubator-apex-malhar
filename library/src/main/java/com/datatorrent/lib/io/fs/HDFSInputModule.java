@@ -35,14 +35,23 @@ import com.datatorrent.common.partitioner.StatelessPartitioner;
 import com.datatorrent.lib.counters.BasicCounters;
 import com.datatorrent.lib.io.block.AbstractBlockReader.ReaderRecord;
 import com.datatorrent.lib.io.block.BlockMetadata.FileBlockMetadata;
-import com.datatorrent.lib.io.block.HDFSBlockReader;
+import com.datatorrent.lib.io.block.BlockReader;
 import com.datatorrent.lib.io.fs.AbstractFileSplitter.FileMetadata;
 import com.datatorrent.lib.io.fs.HDFSFileSplitter.HDFSScanner;
 import com.datatorrent.netlet.util.Slice;
 
 /**
- * HDFSInputModule is used to read files from HDFS. <br/>
- * Module emits FileMetadata, BlockMetadata and the block bytes.
+ * HDFSInputModule is used to read files/list of files (or directory) from HDFS. <br/>
+ * Module emits, <br/>
+ * 1. FileMetadata 2. BlockMetadata 3. Block Bytes.<br/><br/>
+ * The module reads data in parallel, following parameters can be configured<br/>
+ * 1. files: list of file(s)/directories to read<br/>
+ * 2. filePatternRegularExp: Files names matching given regex will be read<br/>
+ * 3. scanIntervalMillis: interval between two scans to discover new files in input directory<br/>
+ * 4. recursive: if scan recursively input directories<br/>
+ * 5. blockSize: block size used to read input blocks of file<br/>
+ * 6. readersCount: count of readers to read input file<br/>
+ * 7. sequencialFileRead: If emit file blocks in sequence?
  */
 public class HDFSInputModule implements Module
 {
@@ -66,7 +75,7 @@ public class HDFSInputModule implements Module
   public void populateDAG(DAG dag, Configuration conf)
   {
     HDFSFileSplitter fileSplitter = dag.addOperator("FileSplitter", new HDFSFileSplitter());
-    HDFSBlockReader blockReader = dag.addOperator("BlockReader", new HDFSBlockReader());
+    BlockReader blockReader = dag.addOperator("BlockReader", new BlockReader());
 
     dag.addStream("BlockMetadata", fileSplitter.blocksMetadataOutput, blockReader.blocksMetadataInput);
 
@@ -91,7 +100,7 @@ public class HDFSInputModule implements Module
 
     blockReader.setUri(files);
     if (readersCount != 0) {
-      dag.setAttribute(blockReader, Context.OperatorContext.PARTITIONER, new StatelessPartitioner<HDFSBlockReader>(readersCount));
+      dag.setAttribute(blockReader, Context.OperatorContext.PARTITIONER, new StatelessPartitioner<BlockReader>(readersCount));
     }
 
     MetricsAggregator blockReaderMetrics = new MetricsAggregator();
@@ -203,11 +212,19 @@ public class HDFSInputModule implements Module
     this.blockSize = blockSize;
   }
 
+  /**
+   * Gets readers count
+   * @return readersCount
+   */
   public int getReadersCount()
   {
     return readersCount;
   }
 
+  /**
+   * Static count of readers to read input file
+   * @param readersCount
+   */
   public void setReadersCount(int readersCount)
   {
     this.readersCount = readersCount;

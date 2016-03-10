@@ -179,7 +179,7 @@ public class FileSplitterInputTest
     for (int i = 0; i < 12; i++) {
       FileSplitterInput.FileMetadata fm = testMeta.fileMetadataSink.collectedTuples.get(i);
       File testFile = new File(testMeta.dataDirectory, fm.getFileName());
-      noOfBlocks += (int) Math.ceil(testFile.length() / (2 * 1.0));
+      noOfBlocks += (int)Math.ceil(testFile.length() / (2 * 1.0));
     }
     Assert.assertEquals("Blocks", noOfBlocks, testMeta.blockMetadataSink.collectedTuples.size());
   }
@@ -191,7 +191,7 @@ public class FileSplitterInputTest
     testMeta.fileSplitterInput.setIdempotentStorageManager(fsIdempotentStorageManager);
 
     testMeta.fileSplitterInput.setup(testMeta.context);
-    // will emit window 1 from data directory
+    //will emit window 1 from data directory
     testFileMetadata();
     testMeta.fileMetadataSink.clear();
     testMeta.blockMetadataSink.clear();
@@ -213,7 +213,7 @@ public class FileSplitterInputTest
     testMeta.blockMetadataSink.clear();
 
     Thread.sleep(1000);
-    // added a new relativeFilePath
+    //added a new relativeFilePath
     File f13 = new File(testMeta.dataDirectory, "file13" + ".txt");
     HashSet<String> lines = Sets.newHashSet();
     for (int line = 0; line < 2; line++) {
@@ -221,7 +221,7 @@ public class FileSplitterInputTest
     }
     FileUtils.write(f13, StringUtils.join(lines, '\n'));
 
-    // window 2
+    //window 2
     testMeta.fileSplitterInput.beginWindow(2);
     testMeta.scanner.semaphore.acquire();
     testMeta.fileSplitterInput.emitTuples();
@@ -240,7 +240,7 @@ public class FileSplitterInputTest
     testMeta.blockMetadataSink.clear();
 
     Thread.sleep(1000);
-    // added a new relativeFilePath
+    //added a new relativeFilePath
     File f13 = new File(testMeta.dataDirectory, "file13" + ".txt");
     HashSet<String> lines = Sets.newHashSet();
     for (int line = 0; line < 2; line++) {
@@ -249,7 +249,7 @@ public class FileSplitterInputTest
     FileUtils.write(f13, StringUtils.join(lines, '\n'));
     testMeta.fileSplitterInput.getScanner().setTrigger(true);
 
-    // window 2
+    //window 2
     testMeta.fileSplitterInput.beginWindow(2);
     testMeta.scanner.semaphore.acquire();
     testMeta.fileSplitterInput.emitTuples();
@@ -357,7 +357,7 @@ public class FileSplitterInputTest
     testMeta.fileSplitterInput.emitTuples();
     testMeta.fileSplitterInput.endWindow();
 
-    // file0.txt has just 5 blocks. Since blocks threshold is 2, only 2 are emitted.
+    //file0.txt has just 5 blocks. Since blocks threshold is 2, only 2 are emitted.
     Assert.assertEquals("Files", 1, testMeta.fileMetadataSink.collectedTuples.size());
     Assert.assertEquals("Blocks", 2, testMeta.blockMetadataSink.collectedTuples.size());
 
@@ -366,7 +366,7 @@ public class FileSplitterInputTest
 
     testMeta.fileSplitterInput.teardown();
 
-    // there was a failure and the operator was re-deployed
+    //there was a failure and the operator was re-deployed
     Input lInput = new Input(bos.toByteArray());
     testMeta.fileSplitterInput = kryo.readObject(lInput, testMeta.fileSplitterInput.getClass());
     lInput.close();
@@ -413,7 +413,7 @@ public class FileSplitterInputTest
     testMeta.blockMetadataSink.clear();
 
     Thread.sleep(1000);
-    // added a new relativeFilePath
+    //added a new relativeFilePath
     File f13 = new File(testMeta.dataDirectory + "/child", "file13" + ".txt");
     HashSet<String> lines = Sets.newHashSet();
     for (int line = 0; line < 2; line++) {
@@ -421,7 +421,7 @@ public class FileSplitterInputTest
     }
     FileUtils.write(f13, StringUtils.join(lines, '\n'));
 
-    // window 2
+    //window 2
     testMeta.fileSplitterInput.beginWindow(2);
     testMeta.scanner.semaphore.acquire();
     testMeta.fileSplitterInput.emitTuples();
@@ -467,17 +467,17 @@ public class FileSplitterInputTest
     testMeta.fileSplitterInput.emitTuples();
     testMeta.fileSplitterInput.endWindow();
 
-    // file0.txt has just 5 blocks. Since blocks threshold is 2, only 2 are emitted.
+    //file0.txt has just 5 blocks. Since blocks threshold is 2, only 2 are emitted.
     Assert.assertEquals("Files", 1, testMeta.fileMetadataSink.collectedTuples.size());
     Assert.assertEquals("Blocks", 2, testMeta.blockMetadataSink.collectedTuples.size());
 
     testMeta.fileMetadataSink.clear();
     testMeta.blockMetadataSink.clear();
 
-    // At this point the operator was check-pointed and then there was a failure.
+    //At this point the operator was check-pointed and then there was a failure.
     testMeta.fileSplitterInput.teardown();
 
-    // The operator was restored from persisted state and re-deployed.
+    //The operator was restored from persisted state and re-deployed.
     testMeta.fileSplitterInput = KryoCloneUtils.cloneObject(testMeta.fileSplitterInput);
     TestUtils.setSink(testMeta.fileSplitterInput.blocksMetadataOutput, testMeta.blockMetadataSink);
     TestUtils.setSink(testMeta.fileSplitterInput.filesMetadataOutput, testMeta.fileMetadataSink);
